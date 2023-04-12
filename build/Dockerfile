@@ -4,6 +4,7 @@ WORKDIR /code
 ENV CGO_ENABLED 0
 ENV GOPATH /go
 ENV GOCACHE /go-build
+ARG PROXY_ENTRYPOINT
 
 COPY go.mod go.sum ./
 RUN --mount=type=cache,target=/go/pkg/mod/cache \
@@ -12,7 +13,7 @@ RUN --mount=type=cache,target=/go/pkg/mod/cache \
 COPY . .
 RUN --mount=type=cache,target=/go-build \
     --mount=type=cache,target=/go/pkg/mod/cache \
-    go build -o bin/proxy cmd/reverse/main.go
+    go build -o bin/proxy $PROXY_ENTRYPOINT
 
 FROM scratch
 COPY --from=builder /code/bin/proxy /usr/local/bin/proxy

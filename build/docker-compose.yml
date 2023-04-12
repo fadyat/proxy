@@ -13,9 +13,10 @@ services:
 
   proxy:
     environment:
-      - PROXY_ENTRYPOINT=cmd/reverse/main.go
       - REDIS_ADDR=cache:6379
     build:
+      args:
+        - PROXY_ENTRYPOINT=cmd/reverse/main.go
       context: ..
       dockerfile: build/Dockerfile
     ports:
