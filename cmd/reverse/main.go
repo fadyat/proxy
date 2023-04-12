@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"io"
 	"log"
 	"net/http"
@@ -42,30 +43,36 @@ func initServerProxy(h http.Handler) *http.Server {
 	}
 }
 
+func root(w http.ResponseWriter, r *http.Request, cfg *config) {
+	log.Printf("[INFO] request received at reverse proxy at %s\n", internal.GetCurrentTime())
+	configureRequest(r, cfg)
+	res, err := http.DefaultClient.Do(r)
+	if err != nil {
+		log.Printf("[ERROR] %v", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = fmt.Fprint(w, err)
+		return
+	}
+
+	defer func() { _ = res.Body.Close() }()
+	log.Printf("[INFO] response received at reverse proxy at %s\n", internal.GetCurrentTime())
+	w.WriteHeader(res.StatusCode)
+	_, _ = io.Copy(w, res.Body)
+}
+
 func main() {
 	cfg, e := initConfig()
 	if e != nil {
 		panic(e)
 	}
 
-	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("[INFO] request received at reverse proxy at %s\n", internal.GetCurrentTime())
-		configureRequest(r, cfg)
-		res, err := http.DefaultClient.Do(r)
-		if err != nil {
-			log.Printf("[ERROR] %v", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			_, _ = fmt.Fprint(w, err)
-			return
-		}
-
-		defer func() { _ = res.Body.Close() }()
-		log.Printf("[INFO] response received at reverse proxy at %s\n", internal.GetCurrentTime())
-		w.WriteHeader(res.StatusCode)
-		_, _ = io.Copy(w, res.Body)
+	mux := http.NewServeMux()
+	mux.Handle("/metrics", promhttp.Handler())
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		root(w, r, cfg)
 	})
 
-	s := initServerProxy(h)
+	s := initServerProxy(mux)
 	log.Println("[INFO] reverse proxy starting")
 	log.Fatalf("[ERROR] %v", s.ListenAndServe())
 }

@@ -7,8 +7,8 @@ tests:
 server:
 	go run cmd/server/main.go
 
-reverse:
+proxy:
 	go run cmd/reverse/main.go
 
-request:
+req:
 	curl -i http://localhost:8080
