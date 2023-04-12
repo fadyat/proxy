@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  cache:
+    image: redis:6.2-alpine
+    restart: always
+    expose:
+      - '6379'
+    volumes:
+      - .cache:/data
+    networks:
+      - proxy-network
+
+  proxy:
+    environment:
+      - PROXY_ENTRYPOINT=cmd/reverse/main.go
+      - REDIS_ADDR=cache:6379
+    build:
+      context: ..
+      dockerfile: build/Dockerfile
+    ports:
+      - '8080:8080'
+    volumes:
+      - ./var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      - cache
+    networks:
+      - proxy-network
+
+networks:
+  proxy-network:
+    driver: bridge
+
+volumes:
+  .cache:
+    driver: local

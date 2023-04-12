@@ -1,22 +1,53 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/redis/go-redis/v9"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"proxy/internal"
+	"strconv"
 	"time"
 )
 
 type config struct {
 	serverURL *url.URL
+	cache     *cacheCfg
 }
 
-const (
-	serverURL = "http://localhost:8081"
+type cacheCfg struct {
+	addr     string
+	password string
+	db       int
+}
+
+func getEnvOrDefault(key, defaultValue string) string {
+	if value, ok := os.LookupEnv(key); ok {
+		return value
+	}
+	return defaultValue
+}
+
+func getEnvOrDefaultInt(key string, defaultValue int) int {
+	if value, ok := os.LookupEnv(key); ok {
+		if v, err := strconv.Atoi(value); err == nil {
+			return v
+		}
+	}
+
+	return defaultValue
+}
+
+var (
+	serverURL = getEnvOrDefault("SERVER_URL", "http://localhost:8081")
+	redisAddr = getEnvOrDefault("REDIS_ADDR", "localhost:6379")
+	redisPass = getEnvOrDefault("REDIS_PASS", "")
+	redisDB   = getEnvOrDefaultInt("REDIS_DB", 0)
 )
 
 func initConfig() (*config, error) {
@@ -25,7 +56,14 @@ func initConfig() (*config, error) {
 		return nil, err
 	}
 
-	return &config{serverURL: s}, nil
+	return &config{
+		serverURL: s,
+		cache: &cacheCfg{
+			addr:     redisAddr,
+			password: redisPass,
+			db:       redisDB,
+		},
+	}, nil
 }
 
 func configureRequest(r *http.Request, cfg *config) {
@@ -61,9 +99,9 @@ func root(w http.ResponseWriter, r *http.Request, cfg *config) {
 }
 
 func main() {
-	cfg, e := initConfig()
-	if e != nil {
-		panic(e)
+	cfg, err := initConfig()
+	if err != nil {
+		panic(err)
 	}
 
 	mux := http.NewServeMux()
@@ -71,6 +109,18 @@ func main() {
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		root(w, r, cfg)
 	})
+
+	cache := redis.NewClient(&redis.Options{
+		Addr:     cfg.cache.addr,
+		Password: cfg.cache.password,
+		DB:       cfg.cache.db,
+	})
+
+	val, err := cache.Ping(context.TODO()).Result()
+	if err != nil {
+		panic(err)
+	}
+	log.Printf("[INFO] redis ping: %s", val)
 
 	s := initServerProxy(mux)
 	log.Println("[INFO] reverse proxy starting")

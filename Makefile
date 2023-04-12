@@ -12,3 +12,9 @@ proxy:
 
 req:
 	curl -i http://localhost:8080
+
+cache:
+	docker-compose --file build/docker-compose.yml up cache
+
+proxy-docker:
+	docker-compose --file build/docker-compose.yml up --build proxy
