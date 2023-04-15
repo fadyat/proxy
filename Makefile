@@ -4,17 +4,8 @@ lint:
 tests:
 	go test -v ./... -cover
 
-server:
-	go run cmd/server/main.go
-
-proxy:
-	go run cmd/reverse/main.go
-
 req:
-	curl -i http://localhost:8080
+	curl -i http://localhost:8080/api/v1/health?name=foo
 
-cache:
-	docker-compose --file build/docker-compose.yml up cache
-
-proxy-docker:
-	docker-compose --file build/docker-compose.yml up --build proxy
+docker:
+	docker-compose --file build/docker-compose.yml up --build

@@ -32,3 +32,10 @@ $ make server
 ```bash
 $ make proxy
 ```
+
+### Features
+
+- [ ] Caching for content
+- [ ] Load balancing
+- [ ] Content filtering
+- [ ] Compression
