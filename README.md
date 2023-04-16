@@ -35,7 +35,8 @@ $ make proxy
 
 ### Features
 
-- [ ] Caching for content
+- [x] Caching for API requests
+- [ ] Caching for static files
 - [ ] Load balancing
 - [ ] Content filtering
 - [ ] Compression
