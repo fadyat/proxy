@@ -4,20 +4,12 @@ import (
 	"fmt"
 	"go.uber.org/zap"
 	"net/http"
-	"proxy/internal"
+	"proxy/pkg"
 	"time"
 )
 
-func initServer(h http.Handler) *http.Server {
-	return &http.Server{
-		Addr:        ":8081",
-		ReadTimeout: 5 * time.Second,
-		Handler:     h,
-	}
-}
-
 func main() {
-	l := internal.InitLogger()
+	l := pkg.InitLogger()
 
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		l.Info("received request", zap.String("url", r.RequestURI))
@@ -25,7 +17,12 @@ func main() {
 		l.Info("response sent", zap.String("url", r.RequestURI))
 	})
 
-	s := initServer(h)
+	s := &http.Server{
+		Addr:        ":8081",
+		ReadTimeout: 5 * time.Second,
+		Handler:     h,
+	}
+
 	l.Info("server starting", zap.String("addr", s.Addr))
 	if err := s.ListenAndServe(); err != nil {
 		l.Fatal("server failed", zap.Error(err))

@@ -2,11 +2,19 @@ version: '3.8'
 
 services:
 
+  cache-local:
+    image: redis:6.2-alpine
+    restart: always
+    ports:
+      - '6379:6379'
+    volumes:
+      - .cache:/data
+
   cache:
     image: redis:6.2-alpine
     restart: always
-    expose:
-      - '6379'
+    ports:
+      - '6379:6379'
     volumes:
       - .cache:/data
     networks:
@@ -14,8 +22,11 @@ services:
 
   proxy:
     environment:
-      - REDIS_ADDR=cache:6379
-      - SERVER_URL=http://microservice:8081
+      - CACHE_REDIS_ADDR=cache:6379
+      - CACHE_REDIS_PASS=""
+      - CACHE_REDIS_DB=0
+      - PROXY_SERVER_URL=http://microservice:8081
+      - PROXY_ADDR=:8080
     build:
       args:
         - SERVICE_ENTRYPOINT=cmd/proxy/main.go

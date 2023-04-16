@@ -3,6 +3,8 @@ module proxy
 go 1.20
 
 require (
+	github.com/joho/godotenv v1.5.1
+	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/prometheus/client_golang v1.14.0
 	github.com/redis/go-redis/v9 v9.0.3
 	go.uber.org/zap v1.24.0
